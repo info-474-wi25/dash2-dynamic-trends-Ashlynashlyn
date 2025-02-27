@@ -1,5 +1,5 @@
-// python3 -m http.server 8080
-// http://localhost:8080/
+// python3 -m http.server 8000
+// http://localhost:8000/
 
 // 1: SET GLOBAL VARIABLES
 const margin = { top: 50, right: 30, bottom: 60, left: 70 };
@@ -62,10 +62,31 @@ d3.csv("aircraft_incidents_modified.csv").then(data => {
         .attr("fill", "none");
 
     // 5.a: ADD AXES FOR CHART 1
-
-
+    svgLine.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(xYear)
+            .tickFormat(d3.format("d")));
+    
+            svgLine.append("g")
+        .call(d3.axisLeft(yCount));
+    
     // 6.a: ADD LABELS FOR CHART 1
+    // x label
+    svgLine.append("text")
+        .attr("class", "axis-label")
+        .attr("x", width / 2 - 80)
+        .attr("y", height + margin.bottom)
+        .attr("text-anchor", "middle")
+        .text("Year");
 
+    // y label
+    svgLine.append("text")
+        .attr("class", "axis-label")
+        .attr("transform", "rotate(-90)")
+        .attr("y", -margin.left + 20)
+        .attr("x", -height / 2)
+        .attr("text-anchor", "middle")
+        .text("Number of Accidents");
 
     // 7.a: ADD INTERACTIVITY FOR CHART 1
     
