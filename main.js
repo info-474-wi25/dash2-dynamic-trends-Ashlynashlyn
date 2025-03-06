@@ -54,12 +54,19 @@ d3.csv("aircraft_incidents_modified.csv").then(data => {
         .y(d => yCount(d.Count)); 
 
     // 4.a: PLOT DATA FOR CHART 1
-    svgLine.append("path")
-        .datum(yearAccidentsArray) 
-        .attr("d", line) 
-        .attr("stroke", "steelblue")
-        .attr("stroke-width", 2)
-        .attr("fill", "none");
+    svgLine.selectAll("path.data-line")
+        .data([yearAccidentsArray]) // Bind the yearAccidentsArray as a single line
+        .enter()
+        .append("path")
+        .attr("class", "data-line")
+        .attr("d", d3.line()
+            .x(d => xYear(d.Year)) // Assuming "Year" is the field you are using
+            .y(d => yCount(d.Count)) // Assuming "Count" is the field for accident counts
+        )
+        .style("stroke", "steelblue")
+        .style("fill", "none")
+        .style("stroke-width", 2);
+
 
     // 5.a: ADD AXES FOR CHART 1
     svgLine.append("g")
@@ -74,7 +81,7 @@ d3.csv("aircraft_incidents_modified.csv").then(data => {
     // x label
     svgLine.append("text")
         .attr("class", "axis-label")
-        .attr("x", width / 2 - 80)
+        .attr("x", width / 2 - 20)
         .attr("y", height + margin.bottom)
         .attr("text-anchor", "middle")
         .text("Year");
@@ -89,6 +96,83 @@ d3.csv("aircraft_incidents_modified.csv").then(data => {
         .text("Number of Accidents");
 
     // 7.a: ADD INTERACTIVITY FOR CHART 1
+    function updateChart(selectedGroup) {
+        // Filter data based on the selected group (category)
+        const filteredData = data.filter(d => d.Country === selectedGroup);
+    
+        // Group data by year and calculate the count of accidents
+        const groupedData = d3.rollup(filteredData, v => v.length, d => d.Year);
+    
+        // Convert grouped data to an array of {year, count} objects and sort by year
+        const groupedDataArray = Array.from(groupedData, ([Year, Count]) => ({ Year, Count }))
+            .sort((a, b) => d3.ascending(a.Year, b.Year));
+    
+        // Update the x and y domains based on the grouped data
+        xYear.domain([d3.min(groupedDataArray, d => d.Year), d3.max(groupedDataArray, d => d.Year)]);
+        yCount.domain([0, d3.max(groupedDataArray, d => d.Count)]).nice();
+    
+        // Remove the previous line if it exists
+        svgLine.selectAll("path.data-line").remove();
+    
+        // Add the new line path
+        svgLine.append("path")
+            .datum(groupedDataArray)
+            .attr("class", "data-line")
+            .attr("d", line)
+            .style("stroke", "steelblue")
+            .style("fill", "none")
+            .style("stroke-width", 2);
+    
+        // Redraw the data points (circles) with new data
+        svgLine.selectAll(".data-point")
+            .data(groupedDataArray)
+            .enter()
+            .append("circle")
+            .attr("class", "data-point")
+            .attr("cx", d => xYear(d.Year))
+            .attr("cy", d => yCount(d.Count))
+            .attr("r", 5)
+            .style("fill", "steelblue")
+            .style("opacity", 0) // Start with invisible circles
+            .on("mouseover", function (event, d) {
+                tooltip.style("visibility", "visible")
+                    .html(`<strong>Year:</strong> ${d.Year} <br><strong>Accidents:</strong> ${d.Count}`)
+                    .style("top", (event.pageY + 10) + "px")
+                    .style("left", (event.pageX + 10) + "px");
+    
+                // Make the hovered circle visible
+                d3.select(this).style("opacity", 1);
+                
+                // Add a large circle at the hovered point
+                svgLine.append("circle")
+                    .attr("class", "hover-circle")
+                    .attr("cx", xYear(d.Year))
+                    .attr("cy", yCount(d.Count))
+                    .attr("r", 6)
+                    .style("fill", "steelblue")
+                    .style("stroke-width", 2);
+            })
+            .on("mousemove", function (event) {
+                tooltip.style("top", (event.pageY + 10) + "px")
+                    .style("left", (event.pageX + 10) + "px");
+            })
+            .on("mouseout", function () {
+                tooltip.style("visibility", "hidden");
+    
+                // Remove the hover circle when mouseout occurs
+                svgLine.selectAll(".hover-circle").remove();
+    
+                // Make the data point circle invisible again
+                d3.select(this).style("opacity", 0);
+            });
+    }
+    
+    
+
+    d3.select("#categorySelect").on("change", function() {
+        var selectedCategory = d3.select(this).property("value");
+        updateChart(selectedCategory); // Update the chart based on the selected option
+    }); 
     
 
 });
